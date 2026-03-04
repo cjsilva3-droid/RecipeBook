@@ -1,6 +1,21 @@
 const loginContainer = document.getElementById('login-container');
 const signupContainer = document.getElementById('signup-container');
 const messageBox = document.getElementById('message-box');
+const token = localStorage.getItem("token");
+
+if (token) {
+  fetch('/profile/me', {
+    headers: { Authorization: `Bearer ${token}` }
+  })
+    .then(res => res.json())
+    .then(user => {
+      const avatar = document.getElementById("profile-avatar");
+      if (avatar) {
+        avatar.src = user.profile_pic || "default.png";
+      }
+    });
+}
+
 
 // switch between signup and login viewpoint
 document.getElementById('show-signup').onclick = (e) => {
