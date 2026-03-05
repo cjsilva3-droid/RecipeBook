@@ -106,4 +106,16 @@ async function rateRecipe(recipeId, rating) {
     alert("Rating submitted");
 }
 
-loadRecipes();
+document.addEventListener("DOMContentLoaded", () => {
+
+    loadRecipes();
+
+    const createBtn = document.getElementById("create-recipe-btn");
+
+    if (createBtn) {
+        createBtn.onclick = () => {
+            window.location.href = "createRecipe.html";
+        };
+    }
+
+});
