@@ -15,9 +15,9 @@
         <a href="community.html">Community</a>
         <button onclick="logout()">Logout</button>
 
-           <div id="profile-menu">
-             <img id="profile-avatar" src="default.png" />
-             <div id="dropdown">
+        <div id="profile-menu">
+            <img id="profile-avatar" src="default.png" />
+            <div id="dropdown">
                 <a href="profile.html">Edit Profile</a>
                 <a id="logout-btn">Logout</a>
                 <a id="delete-btn" class="danger">Delete Account</a>
@@ -27,17 +27,14 @@
 
     <div class="container">
         <h1>My Recipes</h1>
-        <button>Create Recipe</button>
+        <button id="create-recipe-btn">Create Recipe</button>
 
-        <div class="card">
-            <h3>Recipe Title</h3>
-            <button>Edit</button>
-            <button>Delete</button>
-        </div>
+        <div id="recipes"></div>
     </div>
 
 
     <script src="auth.js"></script>
+    <script src="recipes.js"></script>
     <script>
         document.addEventListener("DOMContentLoaded", requireAuth);
     </script>

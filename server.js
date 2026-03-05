@@ -33,5 +33,17 @@ app.get('/db-test', async (req, res) => {
 const authRoutes = require('./DataBase/routes/auth');
 app.use('/auth', authRoutes);
 
+// Recipe routes
+const recipeRoutes = require('./DataBase/routes/recipes');
+app.use('/api/recipes', recipeRoutes);
+
+// Comment routes
+const commentRoutes = require('./DataBase/routes/comments');
+app.use('/api/comments', commentRoutes);
+
+// Rating routes
+const ratingRoutes = require('./DataBase/routes/ratings');
+app.use('/api/ratings', ratingRoutes);
+
 // Start server
 app.listen(3000, () => console.log("Server running on port 3000"));
