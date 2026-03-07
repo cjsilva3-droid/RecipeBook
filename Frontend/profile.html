@@ -1,25 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Zestify • Account Settings</title>
+  <link rel="stylesheet" href="profile.css">
+</head>
+
 <body>
-  <h2>Edit Profile</h2>
+  <div class="container">
 
-  <label>Username</label>
-  <input id="username" type="text">
+    <header>
+      <img src="YOUR_LOGO_PATH_HERE" class="logo">
+      <h1>Account Settings</h1>
+    </header>
 
-  <label>Email</label>
-  <input id="email" type="email">
+    <section class="profile-section">
+      <img id="profile-pic" class="avatar" src="" alt="Profile Picture">
+      <input id="pic-input" type="file">
+      <button onclick="uploadPic()">Upload Picture</button>
+    </section>
 
-  <button onclick="updateProfile()">Save Changes</button>
+    <section class="info-section">
+      <h2>Profile Info</h2>
 
-  <h3>Change Password</h3>
-  <input id="old-pass" type="password" placeholder="Old Password">
-  <input id="new-pass" type="password" placeholder="New Password">
-  <button onclick="changePassword()">Update Password</button>
+      <label>Username</label>
+      <input id="username" type="text">
 
-  <h3>Profile Picture</h3>
-  <input id="pic-input" type="file">
-  <button onclick="uploadPic()">Upload Picture</button>
+      <label>Email</label>
+      <input id="email" type="email">
 
-  <button id="logout-btn">Logout</button>
-  <button id="delete-btn" class="danger">Delete Account</button>
+      <button onclick="updateProfile()">Save Changes</button>
+    </section>
 
-  <script src="js/profile.js"></script>
+    <section class="bio-section">
+      <h2>Bio</h2>
+      <textarea id="bio" placeholder="Tell us about yourself..."></textarea>
+      <button onclick="updateBio()">Update Bio</button>
+    </section>
+
+    <section class="password-section">
+      <h2>Change Password</h2>
+      <input id="old-pass" type="password" placeholder="Old Password">
+      <input id="new-pass" type="password" placeholder="New Password">
+      <button onclick="changePassword()">Update Password</button>
+    </section>
+
+    <section class="danger-zone">
+      <button id="logout-btn">Logout</button>
+      <button id="delete-btn" class="danger">Delete Account</button>
+    </section>
+
+  </div>
+
+  <script src="profile.js"></script>
 </body>
+</html>
