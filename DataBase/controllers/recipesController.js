@@ -94,3 +94,39 @@ exports.getRecipeById = async (req, res) => {
         res.status(500).json({ error: 'Failed to fetch recipe' });
     }
 };
+
+// Return only the current user's recipes (requires auth)
+// Called by "My Recipes" page to show only recipes posted by the logged-in user
+exports.getMyRecipes = async (req, res) => {
+    try {
+        const user_id = req.user ? req.user.id : null;
+
+        if (!user_id) {
+            return res.status(401).json({ error: 'Not authenticated' });
+        }
+
+        const [rows] = await pool.query(`
+            SELECT
+                r.id,
+                r.title,
+                r.description,
+                r.estimated_time,
+                r.created_at,
+                u.username AS author,
+                COALESCE(AVG(rt.rating), 0) AS average_rating,
+                COUNT(c.id) AS comment_count
+            FROM recipes r
+            LEFT JOIN users u ON r.user_id = u.id
+            LEFT JOIN ratings rt ON rt.recipe_id = r.id
+            LEFT JOIN comments c ON c.recipe_id = r.id
+            WHERE r.user_id = ?
+            GROUP BY r.id
+            ORDER BY r.created_at DESC
+        `, [user_id]);
+
+        res.json(rows);
+    } catch (err) {
+        console.error('getMyRecipes error:', err);
+        res.status(500).json({ error: 'Failed to fetch your recipes' });
+    }
+};

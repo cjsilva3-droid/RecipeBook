@@ -5,7 +5,8 @@ const router = express.Router();
 const {
     createRecipe,
     getRecipes,
-    getRecipeById
+    getRecipeById,
+    getMyRecipes
 } = require('../controllers/recipesController');
 const {
     getCommentsForRecipe,
@@ -18,8 +19,15 @@ const {
 
 const { authenticateToken } = require('../middleware/authMiddleware');
 
+// Protected route to create a recipe (requires auth)
+// Must be BEFORE /:id route so "POST /" matches before "GET /:id"
+router.post('/', authenticateToken, createRecipe);
+
 // Public route to fetch all recipes (public feed)
 router.get('/', getRecipes);
+
+// Protected route to fetch only the current user's recipes (requires auth)
+router.get('/my', authenticateToken, getMyRecipes);
 
 // Public route to fetch a single recipe by ID
 router.get('/:id', getRecipeById);
@@ -31,8 +39,5 @@ router.post('/:id/comments', authenticateToken, postComment);
 // Ratings on a recipe
 router.get('/:id/ratings', getRatingsForRecipe);
 router.post('/:id/ratings', authenticateToken, postRating);
-
-// Protected route to create a recipe (requires auth)
-router.post('/', authenticateToken, createRecipe);
 
 module.exports = router;

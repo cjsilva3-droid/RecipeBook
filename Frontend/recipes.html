@@ -73,10 +73,23 @@
         // Load recipes from the backend and render them in the feed
         async function loadFeed() {
             try {
-                const res = await fetch('http://localhost:3000/recipes');
+                const token = localStorage.getItem('token');
+                const res = await fetch('http://localhost:3000/recipes/my', {
+                    headers: token ? { 'Authorization': 'Bearer ' + token } : {}
+                });
                 const recipes = await res.json();
                 const feed = document.getElementById('feed');
                 feed.innerHTML = '';
+
+                if (!res.ok) {
+                    feed.innerHTML = '<p style="color:red;">Error: ' + (recipes.error || 'Failed to load recipes') + '</p>';
+                    return;
+                }
+
+                if (recipes.length === 0) {
+                    feed.innerHTML = '<p>You have not posted any recipes yet. Click "Create Recipe" to share your first recipe!</p>';
+                    return;
+                }
 
                 recipes.forEach(r => {
                     const card = document.createElement('div');
@@ -84,7 +97,7 @@
                     let inner = `<h3>${r.title}</h3>`;
                     inner += `<p>${r.description}</p>`;
                     if (r.estimated_time) inner += `<p><strong>Time:</strong> ${r.estimated_time}</p>`;
-                    inner += `<p><strong>Author:</strong> ${r.author || 'Anonymous'}</p>`;
+                    inner += `<p><strong>Author:</strong> ${r.author || 'You'}</p>`;
                     inner += `<p><strong>Rating:</strong> ${Number(r.average_rating).toFixed(1)} ⭐</p>`;
                     inner += `<p><strong>Comments:</strong> ${r.comment_count}</p>`;
                     inner += `<button onclick="commentRecipe(${r.id})">Comment</button> `;
@@ -191,8 +204,14 @@
                     body: JSON.stringify({ title, description, estimated_time })
                 });
 
-                const msg = await res.json();
                 const messageBox = document.getElementById('formMessage');
+                let msg;
+                try {
+                    msg = await res.json();
+                } catch (jsonErr) {
+                    msg = { error: 'Failed to parse response' };
+                }
+
                 if (res.ok) {
                     messageBox.className = 'success';
                     messageBox.innerText = msg.message;
@@ -200,8 +219,10 @@
                     document.getElementById('createForm').style.display = 'none';
                     loadFeed();
                 } else {
+                    const errorText = msg.error || msg.message || `Request failed (${res.status})`;
+                    console.error('Create recipe failed', res.status, msg);
                     messageBox.className = 'error';
-                    messageBox.innerText = msg.error || 'Failed to create recipe';
+                    messageBox.innerText = errorText;
                 }
             } catch (err) {
                 console.error('Submit recipe error', err);
