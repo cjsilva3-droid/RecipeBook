@@ -42,6 +42,7 @@
                     inner += `<p>${r.description}</p>`;
                     if (r.estimated_time) inner += `<p><strong>Time:</strong> ${r.estimated_time}</p>`;
                     inner += `<p><strong>Author:</strong> ${r.author || 'Anonymous'}</p>`;
+                    inner += `<p><strong>Published:</strong> ${formatRecipeDate(r.created_at)}</p>`;
                     inner += `<p><strong>Rating:</strong> ${Number(r.average_rating).toFixed(1)} ⭐</p>`;
                     inner += `<p><strong>Comments:</strong> ${r.comment_count}</p>`;
                     inner += `<button onclick="commentRecipe(${r.id})">Comment</button> `;
@@ -52,6 +53,13 @@
             } catch (err) {
                 console.error('Load feed error', err);
             }
+        }
+
+        function formatRecipeDate(value) {
+            if (!value) return '';
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return '';
+            return date.toLocaleString();
         }
 
         async function commentRecipe(id) {
