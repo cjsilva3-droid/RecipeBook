@@ -1,11 +1,16 @@
 require('dotenv').config();   // <--- REQUIRED
 
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const app = express();
 
 app.use(cors());              // <--- REQUIRED for frontend to talk to backend
 app.use(express.json());
+app.use(express.urlencoded({ extended: true })); // Add URL-encoded parser
+
+// Serve uploaded images from /uploads
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Import DB pool
 const pool = require('./DataBase/db/pool');
@@ -49,10 +54,31 @@ app.use('/recipes', recipesRoutes);
                 title VARCHAR(25) NOT NULL,
                 description VARCHAR(150) NOT NULL,
                 estimated_time VARCHAR(50),
+                image_url VARCHAR(255),
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
             )
         `);
+
+        // Add missing columns if table already existed before this change
+        try {
+            await pool.query(`ALTER TABLE recipes ADD COLUMN image_url VARCHAR(255)`);
+        } catch (err) {
+            // ignore if column already exists
+            if (err.code !== 'ER_DUP_FIELDNAME') {
+                console.warn('Could not add image_url column:', err);
+            }
+        }
+
+        try {
+            await pool.query(`ALTER TABLE recipes ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`);
+        } catch (err) {
+            // ignore if column already exists
+            if (err.code !== 'ER_DUP_FIELDNAME') {
+                console.warn('Could not add/update updated_at column:', err);
+            }
+        }
 
         // comments table: users can comment on recipes
         await pool.query(`
