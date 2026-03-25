@@ -116,7 +116,7 @@
                         return;
                     }
 
-                    const res = await fetch(`/recipes/${id}`, {
+                    const res = await fetch(`http://localhost:3000/recipes/${id}`, {
                         headers: { 'Authorization': 'Bearer ' + token }
                     });
                     const data = await res.json();
@@ -151,7 +151,7 @@
         async function loadFeed() {
             try {
                 const token = localStorage.getItem('token');
-                const res = await fetch('/recipes/my', {
+                const res = await fetch('http://localhost:3000/recipes/my', {
                     headers: token ? { 'Authorization': 'Bearer ' + token } : {}
                 });
                 const recipes = await res.json();
@@ -198,8 +198,7 @@
                     card.innerHTML = inner;
                     feed.appendChild(card);
 
-                    // ✅ LOAD COMMENTS FOR EACH RECIPE
-                    loadComments(r.id);
+                    // Comments are not loaded on this page - users can click Comment to go to community
                 });
 
             } catch (err) {
@@ -250,7 +249,7 @@
             }
 
             try {
-                const res = await fetch(`/recipes/${id}/comments`, {
+                const res = await fetch(`http://localhost:3000/recipes/${id}/comments`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -287,7 +286,7 @@
             const token = localStorage.getItem('token');
 
             try {
-                const res = await fetch(`/recipes/${id}/ratings`, {
+                const res = await fetch(`http://localhost:3000/recipes/${id}/ratings`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -328,7 +327,7 @@
                 formData.append('image', imageInput.files[0]);
             }
 
-            const url = editingRecipeId ? `/recipes/${editingRecipeId}` : '/recipes';
+            const url = editingRecipeId ? `http://localhost:3000/recipes/${editingRecipeId}` : 'http://localhost:3000/recipes';
             const method = editingRecipeId ? 'PUT' : 'POST';
 
             try {
