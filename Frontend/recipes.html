@@ -219,9 +219,15 @@
                     inner += `<button onclick="commentRecipe(${r.id})">Comment</button> `;
                     inner += `<button onclick="rateRecipe(${r.id})">Rate</button> `;
                     inner += `<button onclick="editRecipe(${r.id})">Edit</button>`;
+
                     const favorites = JSON.parse(localStorage.getItem('favorites')) || [];
                     const isFavorited = favorites.some(f => f.id === r.id);
-                    inner += `<button class="favorite-btn" onclick='favoriteRecipe(${JSON.stringify(r)})'>${isFavorited ? "❤️" : "Favorite"}</button>`;
+
+                    inner += `
+                        <button class="favorite-heart" onclick='favoriteRecipe(${JSON.stringify(r)})'>
+                            ${isFavorited ? "❤️" : "🤍"}
+                        </button>
+                    `;
                     card.innerHTML = inner;
                     feed.appendChild(card);
 
