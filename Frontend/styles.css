@@ -1,9 +1,13 @@
 /* GLOBAL FONT */
-html, body {
+html,
+body {
     font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif, Arial, sans-serif;
 }
 
-button, input[type="button"], input[type="submit"], input[type="reset"] {
+button,
+input[type="button"],
+input[type="submit"],
+input[type="reset"] {
     font-family: Helvetica, Arial, sans-serif;
 }
 
@@ -31,7 +35,7 @@ nav a {
 /* Account Settings button */
 #profile-btn {
     background: #6FB34A;
-    color: rgb(0, 0, 0,);
+    color: rgb(0, 0, 0, );
     padding: 10px 14px;
     border: none;
     border-radius: 6px;
@@ -72,9 +76,10 @@ nav a {
 }
 
 .zestify-corner-logo img {
-    width: 70px; /* adjust size if needed */
+    width: 70px;
+    /* adjust size if needed */
     height: auto;
-    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.15));
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.15));
     border-radius: 10px;
 }
 
@@ -111,4 +116,18 @@ h1 {
     padding: 15px;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Favorite button */
+.favorite-heart {
+    background: none;
+    border: none;
+    font-size: 28px;
+    cursor: pointer;
+    margin-left: 8px;
+    transition: transform 0.2s ease;
+}
+
+.favorite-heart:hover {
+    transform: scale(1.2);
 }
