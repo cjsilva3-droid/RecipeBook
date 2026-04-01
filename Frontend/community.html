@@ -25,20 +25,95 @@
 
     <div class="container">
         <h1>Community Feed</h1>
+
+        <div class="card" style="margin-bottom:20px;">
+            <h3>Filter Recipes</h3>
+            <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:flex-end;">
+                <div>
+                    <label for="timeFilter">Estimated Time</label><br>
+                    <select id="timeFilter">
+                        <option value="">All</option>
+                        <option value="0-5">0-5 minutes</option>
+                        <option value="5-15">5-15 minutes</option>
+                        <option value="15-45">15-45 minutes</option>
+                        <option value="45+">45-60+ minutes</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="ratingFilter">Rating</label><br>
+                    <select id="ratingFilter">
+                        <option value="">All</option>
+                        <option value="0-1">0-1 stars</option>
+                        <option value="2-3">2-3 stars</option>
+                        <option value="4-5">4-5 stars</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="commentFilter">Comments</label><br>
+                    <select id="commentFilter">
+                        <option value="">All</option>
+                        <option value="has_comments">Has comments</option>
+                        <option value="no_comments">No comments</option>
+                    </select>
+                </div>
+
+                <div>
+                    <button id="applyFilters" type="button">Apply Filters</button>
+                    <button id="clearFilters" type="button">Clear</button>
+                </div>
+            </div>
+        </div>
+
         <div id="feed"></div>
     </div>
 
 
     <script src="auth.js"></script>
     <script>
+        let activeFilters = {
+            time: '',
+            rating: '',
+            comments: ''
+        };
+
         document.addEventListener("DOMContentLoaded", () => {
             requireAuth();
             loadFeed();
+
+            const timeFilterEl = document.getElementById('timeFilter');
+            const ratingFilterEl = document.getElementById('ratingFilter');
+            const commentFilterEl = document.getElementById('commentFilter');
+            const applyFiltersBtn = document.getElementById('applyFilters');
+            const clearFiltersBtn = document.getElementById('clearFilters');
+
+            applyFiltersBtn.addEventListener('click', () => {
+                activeFilters.time = timeFilterEl.value;
+                activeFilters.rating = ratingFilterEl.value;
+                activeFilters.comments = commentFilterEl.value;
+                loadFeed(activeFilters.time, activeFilters.rating, activeFilters.comments);
+            });
+
+            clearFiltersBtn.addEventListener('click', () => {
+                timeFilterEl.value = '';
+                ratingFilterEl.value = '';
+                commentFilterEl.value = '';
+                activeFilters = { time: '', rating: '', comments: '' };
+                loadFeed();
+            });
         });
 
-        async function loadFeed() {
+        async function loadFeed(timeFilter = '', ratingFilter = '', commentFilter = '') {
             try {
-                const res = await fetch('http://localhost:3000/recipes');
+                let url = '/recipes';
+                const params = new URLSearchParams();
+                if (timeFilter) params.append('time_filter', timeFilter);
+                if (ratingFilter) params.append('rating_filter', ratingFilter);
+                if (commentFilter) params.append('comment_filter', commentFilter);
+                if (params.toString()) url += '?' + params.toString();
+
+                const res = await fetch(url);
                 const recipes = await res.json();
                 const feed = document.getElementById('feed');
                 feed.innerHTML = '';
@@ -128,7 +203,7 @@
                 const data = await res.json();
                 if (res.ok) {
                     alert('Comment posted!');
-                    loadFeed();
+                    loadFeed(activeFilters.time, activeFilters.rating, activeFilters.comments);
                 } else {
                     alert(data.error || 'Failed to post comment');
                 }
@@ -166,7 +241,7 @@
                 const data = await res.json();
                 if (res.ok) {
                     alert('Rating saved!');
-                    loadFeed();
+                    loadFeed(activeFilters.time, activeFilters.rating, activeFilters.comments);
                 } else {
                     alert(data.error || 'Failed to save rating');
                 }
