@@ -93,6 +93,7 @@
         <a href="recipes.html">My Recipes</a>
         <a href="favorites.html">Favorites</a>
         <a href="community.html">Community</a>
+        <a href="calendar.html">Calendar</a>
         <a href="aboutus.html">About Us</a>
     </div>
 
@@ -886,6 +887,14 @@
                 const recipes = await res.json();
                 const feed = document.getElementById('feed');
                 feed.innerHTML = '';
+
+                if (recipes.length === 0) {
+                    const filtersActive = timeFilter || ratingFilter || commentFilter;
+                    feed.innerHTML = filtersActive
+                        ? '<p>No recipes found matching your filters.</p>'
+                        : '<p>No community recipes yet.</p>';
+                    return;
+                }
 
                 recipes.forEach(r => {
                     const card = document.createElement('div');
