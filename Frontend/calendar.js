@@ -26,7 +26,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 currentYear--;
             }
             generateCalendar();
-            loadSavedMealPlan(); // re-render saved items for new month
+            loadSavedMealPlan();
         });
 
         nextBtn.addEventListener("click", () => {
@@ -36,7 +36,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 currentYear++;
             }
             generateCalendar();
-            loadSavedMealPlan(); // re-render saved items for new month
+            loadSavedMealPlan();
         });
     }
 });
@@ -135,7 +135,6 @@ async function loadRecipes() {
             recipeList.appendChild(item);
         });
 
-        // once recipes are loaded, load saved meal plan
         loadSavedMealPlan();
 
     } catch (error) {
@@ -189,7 +188,6 @@ function handleDrop(event, dayCell) {
 
     container.appendChild(recipeTag);
 
-    // save to backend
     saveMealPlan(dateStr, draggedRecipeId);
 
     draggedRecipeId = null;
@@ -252,13 +250,12 @@ async function loadSavedMealPlan() {
         const month = currentMonth;
 
         saved.forEach(entry => {
-            // entry.date expected as "YYYY-MM-DD"
             const entryDate = new Date(entry.date);
             if (
                 entryDate.getFullYear() !== year ||
                 entryDate.getMonth() !== month
             ) {
-                return; // skip entries not in current month
+                return;
             }
 
             const dateStr = entry.date;

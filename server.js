@@ -68,6 +68,11 @@ app.use('/follows', followsRoutes);
 const shoppingRoutes = require('./DataBase/routes/shopping');
 app.use('/api/shopping-list', shoppingRoutes);
 
+//Calendar & Meal Plan routes
+const mealPlanRoutes = require("./DataBase/routes/mealPlanRoutes");
+app.use("/mealplan", mealPlanRoutes);
+
+
 // Ensure user_follows table exists
 pool.query(`
     CREATE TABLE IF NOT EXISTS user_follows (

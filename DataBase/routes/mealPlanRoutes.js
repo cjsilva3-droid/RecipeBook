@@ -1,57 +1,66 @@
 const express = require("express");
 const router = express.Router();
 const pool = require("../db/pool");
+const authenticateToken = require("../middleware/authMiddleware");
 
-// GET /mealplan/my - get all meal plan entries for the logged-in user
-router.get("/my", async (req, res) => {
-    try {
-        const userId = req.user ? req.user.id : null;
-        if (!userId) return res.status(401).json({ error: "Unauthorized" });
-        const [rows] = await pool.query(
-            "SELECT date, recipe_id AS recipeId FROM meal_plans WHERE user_id = ?",
-            [userId]
-        );
-        res.json(rows);
-    } catch (err) {
-        console.error("GET /mealplan/my error:", err);
-        res.status(500).json({ error: "Server error" });
-    }
+// Save a meal to a specific day
+router.post("/", authenticateToken, async (req, res) => {
+  try {
+    const { recipeId, date } = req.body;
+    const userId = req.user.id;
+
+    const result = await pool.query(
+      "INSERT INTO meal_plans (user_id, recipe_id, date) VALUES (?, ?, ?)",
+      [userId, recipeId, date]
+    );
+
+    res.json({
+      id: result.insertId,
+      recipeId,
+      date
+    });
+  } catch (err) {
+    console.error("Error saving meal:", err);
+    res.status(500).json({ error: "Failed to save meal" });
+  }
 });
 
-// POST /mealplan - save a meal plan entry
-router.post("/", async (req, res) => {
-    try {
-        const userId = req.user ? req.user.id : null;
-        if (!userId) return res.status(401).json({ error: "Unauthorized" });
-        const { date, recipeId } = req.body;
-        if (!date || !recipeId) return res.status(400).json({ error: "date and recipeId are required" });
-        await pool.query(
-            "INSERT IGNORE INTO meal_plans (user_id, date, recipe_id) VALUES (?, ?, ?)",
-            [userId, date, recipeId]
-        );
-        res.json({ message: "Meal plan saved" });
-    } catch (err) {
-        console.error("POST /mealplan error:", err);
-        res.status(500).json({ error: "Server error" });
-    }
+// Load all meals for logged-in user
+router.get("/my", authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const rows = await pool.query(
+      `SELECT mp.id, mp.date, r.id AS recipeId, r.title, r.image
+       FROM meal_plans mp
+       JOIN recipes r ON mp.recipe_id = r.id
+       WHERE mp.user_id = ?`,
+      [userId]
+    );
+
+    res.json(rows);
+  } catch (err) {
+    console.error("Error loading meals:", err);
+    res.status(500).json({ error: "Failed to load meal plan" });
+  }
 });
 
-// DELETE /mealplan - remove a meal plan entry
-router.delete("/", async (req, res) => {
-    try {
-        const userId = req.user ? req.user.id : null;
-        if (!userId) return res.status(401).json({ error: "Unauthorized" });
-        const { date, recipeId } = req.body;
-        if (!date || !recipeId) return res.status(400).json({ error: "date and recipeId are required" });
-        await pool.query(
-            "DELETE FROM meal_plans WHERE user_id = ? AND date = ? AND recipe_id = ?",
-            [userId, date, recipeId]
-        );
-        res.json({ message: "Meal plan entry deleted" });
-    } catch (err) {
-        console.error("DELETE /mealplan error:", err);
-        res.status(500).json({ error: "Server error" });
-    }
+// Delete a meal from a day
+router.delete("/:id", authenticateToken, async (req, res) => {
+  try {
+    const mealId = req.params.id;
+    const userId = req.user.id;
+
+    await pool.query(
+      "DELETE FROM meal_plans WHERE id = ? AND user_id = ?",
+      [mealId, userId]
+    );
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Error deleting meal:", err);
+    res.status(500).json({ error: "Failed to delete meal" });
+  }
 });
 
 module.exports = router;
