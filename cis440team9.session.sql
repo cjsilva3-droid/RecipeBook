@@ -1,2 +1,1 @@
-SELECT *
-
+Select * FROM recipes

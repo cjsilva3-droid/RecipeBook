@@ -10,8 +10,7 @@
 <body>
 
     <nav>
-        <a href="dashboard.html">Home</a>
-        <a href="recipes.html">My Recipes</a>
+        <a href="recipes.html">Back</a>
     </nav>
 
     <div class="container">
@@ -25,14 +24,16 @@
             <label>Description (max 800):</label><br>
             <textarea id="description" maxlength="800" required></textarea><br><br>
 
-            <label>Estimated Time:</label><br>
+            <label>Estimated Time:</label><br><br>
             <input type="text" id="estimated_time" placeholder="e.g. 20"><br><br>
 
             <label>Ingredients (comma separated):</label><br>
-            <textarea id="ingredients" placeholder="e.g. eggs, milk, flour"></textarea><br><br>
+            <textarea id="ingredients" rows="8" cols="60" placeholder="e.g. eggs, milk, flour"></textarea>
 
-            <label>Instructions:</label><br>
-            <textarea id="instructions" required></textarea><br><br>
+
+            <br><br><label>Instructions:</label><br>
+            <textarea id="instructions" rows="12" cols="60" required></textarea>
+
 
             <button type="submit">Update Recipe</button>
 
@@ -53,7 +54,7 @@
 
     <script src="auth.js"></script>
     <script src="shopping.js"></script>
-    <script src="editRecipes.js"></script>
+    <script src="editRecipe.js"></script>
 
 </body>
 

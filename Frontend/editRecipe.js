@@ -1,5 +1,3 @@
-const token = localStorage.getItem("token");
-
 const params = new URLSearchParams(window.location.search);
 const recipeId = params.get("id");
 
@@ -49,9 +47,9 @@ async function updateRecipe() {
 
     // Convert string → array
     const ingredients = ingredientsRaw
-        .split(",")
+        .split(/[\n,]+/)   // split on commas OR newlines
         .map(i => i.trim())
-        .filter(i => i.length > 0);
+        .filter(i => i !== "");
 
     if (!title || !description || !instructions) {
         alert("Title, description, and instructions are required.");

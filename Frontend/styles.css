@@ -436,3 +436,85 @@ h1 {
     margin-bottom: 20px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
+
+/* 1. Recipe Section Buttons (Ingredients/Instructions) */
+.recipe-section-btn {
+    background-color: #6FB34A; /* Matching your existing green */
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-top: 12px;
+    margin-right: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.recipe-section-btn:hover {
+    background-color: #5aa63b; /* Slightly darker on hover */
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.recipe-section-btn:active {
+    transform: translateY(0);
+}
+
+/* 2. Author "Badge" Button */
+.author-btn {
+    background-color: rgba(255, 255, 255, 0.8);
+    color: #1e293b;
+    border: 1px solid #cbd5e1;
+    border-radius: 20px; /* Pill shape */
+    padding: 4px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s;
+}
+
+.author-btn:hover {
+    border-color: #6FB34A;
+    color: #6FB34A;
+}
+
+/* 3. Tab Bar Styling */
+.tab-bar {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 25px;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+    padding-bottom: 10px;
+}
+
+.tab-bar button {
+    background: none;
+    border: none;
+    color: #ffffff;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    opacity: 0.6;
+    transition: opacity 0.3s, transform 0.2s;
+}
+
+.tab-bar button.active {
+    opacity: 1;
+    border-bottom: 3px solid #6FB34A;
+    padding-bottom: 7px;
+}
+
+.tab-bar button:hover {
+    opacity: 1;
+}
+
+/* 4. Search Input Focus */
+#recipe-search:focus, #following-search:focus {
+    outline: none;
+    border: 2px solid #6FB34A;
+    box-shadow: 0 0 8px rgba(111, 179, 74, 0.4);
+}
