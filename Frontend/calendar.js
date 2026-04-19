@@ -12,7 +12,7 @@ window.allRecipes = [];
 // -------- INITIALIZE PAGE --------
 document.addEventListener("DOMContentLoaded", () => {
     generateCalendar();
-    loadRecipes(); // <-- recipes load FIRST, then saved meals load inside loadRecipes()
+    loadRecipes(); 
     setupSearch();
 
     const prevBtn = document.getElementById("prevMonth");
@@ -26,7 +26,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 currentYear--;
             }
             generateCalendar();
-            loadSavedMealPlan(); // <-- safe now because recipes are already loaded
+            loadSavedMealPlan(); 
         });
 
         nextBtn.addEventListener("click", () => {
@@ -36,7 +36,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 currentYear++;
             }
             generateCalendar();
-            loadSavedMealPlan(); // <-- safe now
+            loadSavedMealPlan(); 
         });
     }
 });
@@ -60,17 +60,16 @@ function generateCalendar() {
     const firstDay = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-    // blank cells for alignment
     for (let i = 0; i < firstDay; i++) {
         const emptyCell = document.createElement("div");
         emptyCell.classList.add("calendar-day", "empty");
         calendarGrid.appendChild(emptyCell);
     }
 
-    // actual days
     for (let day = 1; day <= daysInMonth; day++) {
         const dayCell = document.createElement("div");
         dayCell.classList.add("calendar-day");
+        // Ensure month and day are padded to match DB style YYYY-MM-DD
         const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
         dayCell.dataset.date = dateStr;
 
@@ -79,9 +78,7 @@ function generateCalendar() {
             month === today.getMonth() &&
             year === today.getFullYear();
 
-        if (isToday) {
-            dayCell.classList.add("today");
-        }
+        if (isToday) dayCell.classList.add("today");
 
         dayCell.innerHTML = `
             <div class="day-number">${day}</div>
@@ -111,7 +108,9 @@ async function loadRecipes() {
         const response = await fetch("http://localhost:3000/recipes");
         const recipes = await response.json();
 
-        window.allRecipes = recipes; // <-- store recipes BEFORE loading saved meals
+        window.allRecipes = recipes; 
+        console.log("Recipes Loaded into window.allRecipes:", window.allRecipes.length);
+
         recipeList.innerHTML = "";
 
         recipes.forEach(recipe => {
@@ -135,7 +134,6 @@ async function loadRecipes() {
             recipeList.appendChild(item);
         });
 
-        // NOW load saved meals (recipes are ready)
         loadSavedMealPlan();
 
     } catch (error) {
@@ -144,7 +142,7 @@ async function loadRecipes() {
     }
 }
 
-// -------- HANDLE DROP ON CALENDAR DAY --------
+// -------- HANDLE DROP --------
 function handleDrop(event, dayCell) {
     if (!draggedRecipeId) return;
 
@@ -153,69 +151,95 @@ function handleDrop(event, dayCell) {
     const container = dayCell.querySelector(".day-recipes");
     const dateStr = dayCell.dataset.date;
 
-    const recipeTag = document.createElement("div");
-    recipeTag.classList.add("calendar-recipe-tag");
-    recipeTag.draggable = true;
+    const recipeTag = createRecipeTag(draggedRecipeId, draggedRecipeTitle, draggedRecipeImage, dateStr);
+    container.appendChild(recipeTag);
 
-    recipeTag.dataset.id = draggedRecipeId;
-    recipeTag.dataset.title = draggedRecipeTitle;
-    recipeTag.dataset.image = draggedRecipeImage;
-    recipeTag.dataset.date = dateStr;
+    saveMealPlan(dateStr, draggedRecipeId);
+    draggedRecipeId = null;
+}
 
-    recipeTag.innerHTML = `
-        <img src="${draggedRecipeImage}" alt="">
-        <span>${draggedRecipeTitle}</span>
+// Helper to create the tag (used by drop and load)
+function createRecipeTag(id, title, img, date) {
+    const tag = document.createElement("div");
+    tag.classList.add("calendar-recipe-tag");
+    tag.draggable = true;
+    tag.dataset.id = id;
+    tag.dataset.title = title;
+    tag.dataset.image = img;
+    tag.dataset.date = date;
+
+    tag.innerHTML = `
+        <img src="${img}" alt="">
+        <span>${title}</span>
     `;
 
-    recipeTag.addEventListener("dragstart", () => {
-        setTimeout(() => recipeTag.classList.add("being-dragged"), 0);
-
-        draggedRecipeId = recipeTag.dataset.id;
-        draggedRecipeTitle = recipeTag.dataset.title;
-        draggedRecipeImage = recipeTag.dataset.image;
+    tag.addEventListener("dragstart", () => {
+        setTimeout(() => tag.classList.add("being-dragged"), 0);
+        draggedRecipeId = tag.dataset.id;
+        draggedRecipeTitle = tag.dataset.title;
+        draggedRecipeImage = tag.dataset.image;
     });
 
-    recipeTag.addEventListener("dragend", () => {
+    tag.addEventListener("dragend", () => {
         const stillDragging = document.querySelector(".being-dragged");
         if (stillDragging) {
-            const d = stillDragging.dataset.date;
-            const rId = stillDragging.dataset.id;
-            if (d && rId) {
-                deleteMealPlan(d, rId);
-            }
+            deleteMealPlan(stillDragging.dataset.date, stillDragging.dataset.id);
             stillDragging.remove();
         }
     });
 
-    container.appendChild(recipeTag);
-
-    saveMealPlan(dateStr, draggedRecipeId);
-
-    draggedRecipeId = null;
+    return tag;
 }
 
-// -------- REMOVE TAG WHEN DRAGGED OFF --------
-function removeDraggedTag() {
-    const tags = document.querySelectorAll(".being-dragged");
-    tags.forEach(tag => tag.remove());
-}
-
-// -------- SEARCH FILTER --------
-function setupSearch() {
-    const searchInput = document.getElementById("recipeSearch");
-
-    searchInput.addEventListener("input", () => {
-        const filter = searchInput.value.toLowerCase();
-        const items = document.querySelectorAll(".recipe-item");
-
-        items.forEach(item => {
-            const title = item.innerText.toLowerCase();
-            item.style.display = title.includes(filter) ? "flex" : "none";
+// -------- LOAD SAVED MEAL PLAN --------
+async function loadSavedMealPlan() {
+    try {
+        console.log("Fetching saved meals...");
+        const res = await fetch("http://localhost:3000/mealplan/my", {
+            headers: {
+                "Authorization": `Bearer ${localStorage.getItem("token")}`
+            }
         });
-    });
+
+        const savedMeals = await res.json();
+        console.log("Meals received from DB:", savedMeals);
+
+        savedMeals.forEach(entry => {
+            // Normalize DB date to YYYY-MM-DD using UTC to match calendar attributes
+            const d = new Date(entry.date);
+            const year = d.getUTCFullYear();
+            const month = d.getUTCMonth();
+            const day = d.getUTCDate();
+            const formattedDate = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+
+            // Only show if it belongs to the current month view
+            if (year !== currentYear || month !== currentMonth) return;
+
+            const dayCell = document.querySelector(`[data-date="${formattedDate}"]`);
+            if (!dayCell) {
+                console.warn("Could not find calendar cell for date:", formattedDate);
+                return;
+            }
+
+            // Find full recipe details from our pre-loaded list
+            const recipe = window.allRecipes.find(r => String(r.id) === String(entry.recipeId));
+            
+            if (recipe) {
+                const container = dayCell.querySelector(".day-recipes");
+                const imgUrl = resolveImageUrl(recipe.imageUrl || recipe.image_url);
+                const tag = createRecipeTag(entry.recipeId, recipe.title, imgUrl, formattedDate);
+                container.appendChild(tag);
+            } else {
+                console.error("Recipe detail missing for ID:", entry.recipeId);
+            }
+        });
+
+    } catch (error) {
+        console.error("Error loading saved meal plan:", error);
+    }
 }
 
-// -------- SAVE MEAL PLAN TO BACKEND --------
+// -------- SAVE & DELETE HELPERS --------
 async function saveMealPlan(date, recipeId) {
     try {
         await fetch("http://localhost:3000/mealplan", {
@@ -231,7 +255,6 @@ async function saveMealPlan(date, recipeId) {
     }
 }
 
-// -------- DELETE MEAL PLAN FROM BACKEND --------
 async function deleteMealPlan(date, recipeId) {
     try {
         await fetch("http://localhost:3000/mealplan", {
@@ -247,78 +270,16 @@ async function deleteMealPlan(date, recipeId) {
     }
 }
 
-// -------- LOAD SAVED MEAL PLAN FOR CURRENT USER --------
-async function loadSavedMealPlan() {
-    try {
-        const res = await fetch("http://localhost:3000/mealplan/my", {
-            headers: {
-                "Authorization": `Bearer ${localStorage.getItem("token")}`
-            }
+function removeDraggedTag() {
+    document.querySelectorAll(".being-dragged").forEach(tag => tag.remove());
+}
+
+function setupSearch() {
+    const searchInput = document.getElementById("recipeSearch");
+    searchInput.addEventListener("input", () => {
+        const filter = searchInput.value.toLowerCase();
+        document.querySelectorAll(".recipe-item").forEach(item => {
+            item.style.display = item.innerText.toLowerCase().includes(filter) ? "flex" : "none";
         });
-
-        const saved = await res.json();
-
-        const year = currentYear;
-        const month = currentMonth;
-
-        saved.forEach(entry => {
-            const entryDate = new Date(entry.date);
-            if (
-                entryDate.getFullYear() !== year ||
-                entryDate.getMonth() !== month
-            ) {
-                return;
-            }
-
-            const dateStr = entry.date;
-            const dayCell = document.querySelector(`[data-date="${dateStr}"]`);
-            if (!dayCell) return;
-
-            const container = dayCell.querySelector(".day-recipes");
-
-            const recipe = window.allRecipes.find(r => String(r.id) === String(entry.recipeId));
-            if (!recipe) return;
-
-            const imgUrl = resolveImageUrl(recipe.imageUrl || recipe.image_url);
-
-            const recipeTag = document.createElement("div");
-            recipeTag.classList.add("calendar-recipe-tag");
-            recipeTag.draggable = true;
-
-            recipeTag.dataset.id = entry.recipeId;
-            recipeTag.dataset.title = recipe.title;
-            recipeTag.dataset.image = imgUrl;
-            recipeTag.dataset.date = dateStr;
-
-            recipeTag.innerHTML = `
-                <img src="${imgUrl}" alt="">
-                <span>${recipe.title}</span>
-            `;
-
-            recipeTag.addEventListener("dragstart", () => {
-                setTimeout(() => recipeTag.classList.add("being-dragged"), 0);
-
-                draggedRecipeId = recipeTag.dataset.id;
-                draggedRecipeTitle = recipeTag.dataset.title;
-                draggedRecipeImage = recipeTag.dataset.image;
-            });
-
-            recipeTag.addEventListener("dragend", () => {
-                const stillDragging = document.querySelector(".being-dragged");
-                if (stillDragging) {
-                    const d = stillDragging.dataset.date;
-                    const rId = stillDragging.dataset.id;
-                    if (d && rId) {
-                        deleteMealPlan(d, rId);
-                    }
-                    stillDragging.remove();
-                }
-            });
-
-            container.appendChild(recipeTag);
-        });
-
-    } catch (error) {
-        console.error("Error loading saved meal plan:", error);
-    }
+    });
 }
