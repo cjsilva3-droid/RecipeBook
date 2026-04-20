@@ -84,11 +84,29 @@
         </div>
     </div>
 
+    <div id="authorProfileModal" class="modal-overlay hidden" aria-hidden="true">
+        <div class="modal-content author-profile-modal-content">
+            <button type="button" id="authorProfileModalClose" class="modal-close" aria-label="Close author profile">&times;</button>
+            <div class="author-profile-header">
+                <img id="authorProfilePic" class="author-profile-pic" src="/uploads/placeholder.png" alt="Author profile picture">
+                <div>
+                    <h3 id="authorProfileName">Author</h3>
+                    <p id="authorFollowerCount" class="author-follower-count">0 followers</p>
+                </div>
+            </div>
+            <p id="authorProfileBio" class="author-profile-bio">No bio yet.</p>
+            <button id="authorFollowButton" type="button" class="recipe-section-btn">Follow</button>
+        </div>
+    </div>
+
     <script>
         const API_BASE_URL = "http://localhost:3000";
         const token = localStorage.getItem("token");
+        const followedAuthorIds = new Set();
         let allRecipes = [];
         let followingRecipes = [];
+        let currentUserId = null;
+        let activeAuthorProfileId = null;
         let activeCommentRecipeId = null;
         let activeCommentRecipeTitle = '';
         let activeRatingRecipeId = null;
@@ -111,6 +129,211 @@
 
         function escapeAttr(text) {
             return text ? text.replace(/["']/g, m => (m === '"' ? '&quot;' : '&#039;')) : '';
+        }
+
+        function getCurrentUserIdFromToken(rawToken) {
+            if (!rawToken || !rawToken.includes('.')) return null;
+
+            try {
+                const payload = rawToken.split('.')[1];
+                const normalizedPayload = payload.replace(/-/g, '+').replace(/_/g, '/');
+                const padding = '='.repeat((4 - (normalizedPayload.length % 4)) % 4);
+                const decodedPayload = atob(normalizedPayload + padding);
+                const parsed = JSON.parse(decodedPayload);
+                const id = Number(parsed.id ?? parsed.userId ?? parsed.user_id);
+                return Number.isFinite(id) ? id : null;
+            } catch (err) {
+                console.warn('Unable to decode token for user id', err);
+                return null;
+            }
+        }
+
+        function buildAuthorButtonHtml(recipe) {
+            const authorName = recipe.author || 'Anonymous';
+            const safeAuthorName = escapeHtml(authorName);
+            const authorId = Number(recipe.author_id);
+
+            if (!Number.isFinite(authorId)) return safeAuthorName;
+            if (currentUserId && authorId === currentUserId) return `${safeAuthorName} (You)`;
+
+            const isFollowing = followedAuthorIds.has(authorId);
+            return `
+                <button
+                    type="button"
+                    class="author-btn ${isFollowing ? 'is-following' : ''}"
+                    data-author-id="${authorId}"
+                    data-author-name="${escapeAttr(authorName)}"
+                    title="${isFollowing ? 'Click to unfollow this author' : 'Click to follow this author'}"
+                >
+                    ${safeAuthorName}${isFollowing ? ' • Following' : ''}
+                </button>
+            `;
+        }
+
+        function updateAuthorButtons(authorId) {
+            if (!Number.isFinite(authorId)) return;
+
+            const isFollowing = followedAuthorIds.has(authorId);
+            document.querySelectorAll(`.author-btn[data-author-id="${authorId}"]`).forEach(btn => {
+                const authorName = btn.dataset.authorName || 'Anonymous';
+                btn.classList.toggle('is-following', isFollowing);
+                btn.title = isFollowing ? 'Click to unfollow this author' : 'Click to follow this author';
+                btn.textContent = isFollowing ? `${authorName} • Following` : authorName;
+            });
+        }
+
+        async function loadFollowedAuthors() {
+            followedAuthorIds.clear();
+
+            try {
+                const res = await fetch(`${API_BASE_URL}/follows/following`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+
+                if (!res.ok) return;
+                const followingUsers = await res.json();
+
+                (followingUsers || []).forEach(user => {
+                    const id = Number(user.id);
+                    if (Number.isFinite(id)) followedAuthorIds.add(id);
+                });
+            } catch (err) {
+                console.error('Failed to load followed users', err);
+            }
+        }
+
+        async function toggleAuthorFollow(authorId, event) {
+            if (event) event.stopPropagation();
+            if (!Number.isFinite(authorId)) return;
+
+            const currentlyFollowing = followedAuthorIds.has(authorId);
+            const res = await fetch(`${API_BASE_URL}/follows/${authorId}`, {
+                method: currentlyFollowing ? 'DELETE' : 'POST',
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                alert(err.error || 'Unable to update follow status right now.');
+                return false;
+            }
+
+            if (currentlyFollowing) {
+                followedAuthorIds.delete(authorId);
+            } else {
+                followedAuthorIds.add(authorId);
+            }
+
+            updateAuthorButtons(authorId);
+
+            await loadFollowingFeed();
+
+            return true;
+        }
+
+        function formatFollowerCount(value) {
+            const count = Number(value) || 0;
+            return `${count} follower${count === 1 ? '' : 's'}`;
+        }
+
+        function setAuthorFollowButtonState(authorId, isFollowing) {
+            const button = document.getElementById('authorFollowButton');
+            if (!button) return;
+
+            const isOwnProfile = currentUserId && authorId === currentUserId;
+            if (isOwnProfile) {
+                button.textContent = 'This is you';
+                button.disabled = true;
+                button.classList.remove('is-following');
+                return;
+            }
+
+            button.disabled = false;
+            button.classList.toggle('is-following', isFollowing);
+            button.textContent = isFollowing ? 'Unfollow' : 'Follow';
+        }
+
+        async function loadAuthorProfileModalData(authorId, fallbackName = '') {
+            const nameEl = document.getElementById('authorProfileName');
+            const bioEl = document.getElementById('authorProfileBio');
+            const countEl = document.getElementById('authorFollowerCount');
+            const picEl = document.getElementById('authorProfilePic');
+
+            nameEl.textContent = fallbackName || 'Author';
+            bioEl.textContent = 'Loading bio...';
+            countEl.textContent = 'Loading followers...';
+            picEl.src = resolveImageUrl('/uploads/placeholder.png');
+
+            try {
+                const profilePromise = fetch(`${API_BASE_URL}/profile/user/${authorId}`);
+                const followStatusPromise = (currentUserId && authorId === currentUserId)
+                    ? Promise.resolve({ ok: true, json: async () => ({ following: false }) })
+                    : fetch(`${API_BASE_URL}/follows/status/${authorId}`, {
+                        headers: { Authorization: `Bearer ${token}` }
+                    });
+
+                const [profileRes, statusRes] = await Promise.all([profilePromise, followStatusPromise]);
+
+                if (!profileRes.ok) {
+                    bioEl.textContent = 'Unable to load author details.';
+                    countEl.textContent = 'Follower count unavailable';
+                    return;
+                }
+
+                const profile = await profileRes.json();
+                const statusData = statusRes.ok ? await statusRes.json() : { following: followedAuthorIds.has(authorId) };
+                const isFollowing = Boolean(statusData.following);
+
+                if (isFollowing) followedAuthorIds.add(authorId);
+                else followedAuthorIds.delete(authorId);
+
+                nameEl.textContent = profile.username || fallbackName || 'Author';
+                bioEl.textContent = profile.bio?.trim() ? profile.bio : 'No bio yet.';
+                countEl.textContent = formatFollowerCount(profile.follower_count);
+                // If a stored profile path points to a missing file, fall back to placeholder.
+                picEl.onerror = () => {
+                    picEl.onerror = null;
+                    picEl.src = resolveImageUrl('/uploads/placeholder.png');
+                };
+                picEl.src = resolveImageUrl(profile.profile_pic || '/uploads/placeholder.png');
+                picEl.alt = `${profile.username || 'Author'} profile picture`;
+
+                setAuthorFollowButtonState(authorId, isFollowing);
+                updateAuthorButtons(authorId);
+            } catch (err) {
+                console.error('Failed to load author profile modal data', err);
+                bioEl.textContent = 'Failed to load bio.';
+                countEl.textContent = 'Follower count unavailable';
+            }
+        }
+
+        async function openAuthorProfileModal(authorId, fallbackName = '', event) {
+            if (event) event.stopPropagation();
+            if (!Number.isFinite(authorId)) return;
+
+            activeAuthorProfileId = authorId;
+            const modal = document.getElementById('authorProfileModal');
+            modal.classList.remove('hidden');
+            modal.setAttribute('aria-hidden', 'false');
+
+            setAuthorFollowButtonState(authorId, followedAuthorIds.has(authorId));
+            await loadAuthorProfileModalData(authorId, fallbackName);
+        }
+
+        function closeAuthorProfileModal() {
+            const modal = document.getElementById('authorProfileModal');
+            modal.classList.add('hidden');
+            modal.setAttribute('aria-hidden', 'true');
+            activeAuthorProfileId = null;
+        }
+
+        async function handleAuthorFollowButtonClick() {
+            if (!Number.isFinite(activeAuthorProfileId)) return;
+
+            const changed = await toggleAuthorFollow(activeAuthorProfileId);
+            if (!changed) return;
+
+            await loadAuthorProfileModalData(activeAuthorProfileId);
         }
 
         function resolveImageUrl(imageUrl) {
@@ -144,6 +367,7 @@
 
                 return {
                     ...recipe,
+                    author_id: recipe.author_id ?? fallback.author_id ?? null,
                     average_rating: fallback.average_rating ?? fallback.avg_rating ?? 0
                 };
             });
@@ -159,7 +383,7 @@
             document.getElementById("tabAll").classList.toggle("active", isAll);
             document.getElementById("tabFollowing").classList.toggle("active", !isAll);
 
-            if (!isAll && !followingRecipes.length) loadFollowingFeed();
+            if (!isAll) loadFollowingFeed();
         }
 
         // ───────────────────────── Search
@@ -221,7 +445,7 @@
                 <h3>${escapeHtml(recipe.title)}</h3>
                 <img src="${resolveImageUrl(recipe.image_url)}" class="recipe-card-image" alt="${escapeAttr(recipe.title || 'Recipe image')}">
                 <p>${escapeHtml(recipe.description || 'No description provided.')}</p>
-                <p><strong>Author:</strong> ${escapeHtml(recipe.author || 'Anonymous')}</p>
+                <p><strong>Author:</strong> ${buildAuthorButtonHtml(recipe)}</p>
                 <p class="recipe-average-rating"><strong>Average Rating:</strong> ${formatAverageRating(recipe)}</p>
                 <p class="recipe-time"><strong>Time:</strong> ${escapeHtml(recipe.estimated_time || '')}</p>
 
@@ -242,6 +466,16 @@
             document.getElementById('modal-favorite-btn').onclick = (event) => toggleFavorite(recipe, event);
             document.getElementById('modal-comment-btn').onclick = () => showCommentModal(recipe.id, recipe.title);
             document.getElementById('modal-rate-btn').onclick = () => openRatingModal(recipe.id);
+
+            const modalAuthorBtn = modalBody.querySelector('.author-btn[data-author-id]');
+            if (modalAuthorBtn) {
+                modalAuthorBtn.onclick = (event) => {
+                    const authorId = Number(modalAuthorBtn.dataset.authorId);
+                    const authorName = modalAuthorBtn.dataset.authorName || '';
+                    openAuthorProfileModal(authorId, authorName, event);
+                };
+            }
+
             modal.style.display = 'flex';
         }
 
@@ -261,11 +495,20 @@
                     <h3>${escapeHtml(r.title)}</h3>
                     <img src="${resolveImageUrl(r.image_url)}" class="recipe-card-image" alt="${escapeAttr(r.title || 'Recipe image')}">
                     <p class="recipe-summary-description">${escapeHtml(r.description || 'No description provided.')}</p>
-                    <p><strong>Author:</strong> ${escapeHtml(r.author || 'Anonymous')}</p>
+                    <p><strong>Author:</strong> ${buildAuthorButtonHtml(r)}</p>
                     <p class="recipe-average-rating"><strong>Average Rating:</strong> ${formatAverageRating(r)}</p>
                     <p class="recipe-time"><strong>Time:</strong> ${escapeHtml(r.estimated_time || '')}</p>
                 </div>
             `;
+
+            const authorBtn = card.querySelector('.author-btn[data-author-id]');
+            if (authorBtn) {
+                authorBtn.onclick = (event) => {
+                    const authorId = Number(authorBtn.dataset.authorId);
+                    const authorName = authorBtn.dataset.authorName || '';
+                    openAuthorProfileModal(authorId, authorName, event);
+                };
+            }
 
             card.addEventListener('click', (event) => {
                 if (event.target.closest('button, a, input, textarea, select, label')) return;
@@ -487,9 +730,11 @@
         });
 
         // ───────────────────────── Init
-        document.addEventListener("DOMContentLoaded", () => {
-            loadFeed();
-            loadFollowingFeed();
+        document.addEventListener("DOMContentLoaded", async () => {
+            currentUserId = getCurrentUserIdFromToken(token);
+
+            await loadFollowedAuthors();
+            await Promise.all([loadFeed(), loadFollowingFeed()]);
 
             document.getElementById('recipe-modal-close').addEventListener('click', closeRecipeModal);
             document.getElementById('recipe-modal').addEventListener('click', (event) => {
@@ -507,6 +752,13 @@
                 if (event.target.id === 'ratingModal') closeRatingModal();
             });
             document.getElementById('ratingSubmitButton').addEventListener('click', submitRating);
+
+            document.getElementById('authorProfileModalClose').addEventListener('click', closeAuthorProfileModal);
+            document.getElementById('authorProfileModal').addEventListener('click', (event) => {
+                if (event.target.id === 'authorProfileModal') closeAuthorProfileModal();
+            });
+            document.getElementById('authorFollowButton').addEventListener('click', handleAuthorFollowButtonClick);
+
             document.getElementById('all-filter-btn').addEventListener('click', filterFeed);
             document.getElementById('following-filter-btn').addEventListener('click', filterFollowingFeed);
         });

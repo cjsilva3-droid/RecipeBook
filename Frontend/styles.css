@@ -635,6 +635,12 @@ h1 {
     color: #6FB34A;
 }
 
+.author-btn.is-following {
+    background-color: #6FB34A;
+    color: #ffffff;
+    border-color: #6FB34A;
+}
+
 /* 3. Tab Bar Styling */
 .tab-bar {
     display: flex;
@@ -763,6 +769,56 @@ h1 {
 
 .rating-modal-content {
     text-align: center;
+}
+
+.author-profile-modal-content {
+    width: min(95%, 460px);
+}
+
+.author-profile-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 12px;
+}
+
+.author-profile-pic {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid rgba(111, 179, 74, 0.45);
+    background: #f1f5f9;
+}
+
+.author-follower-count {
+    margin: 4px 0 0;
+    color: #334155;
+    font-size: 14px;
+}
+
+.author-profile-bio {
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    border-radius: 10px;
+    padding: 10px 12px;
+    min-height: 64px;
+    margin: 0 0 12px;
+    color: #1e293b;
+    white-space: pre-wrap;
+}
+
+#authorFollowButton {
+    margin-top: 0;
+}
+
+#authorFollowButton.is-following {
+    background-color: #f97316;
+}
+
+#authorFollowButton:disabled {
+    opacity: 0.75;
+    cursor: not-allowed;
 }
 
 .rating-stars {

@@ -325,6 +325,7 @@ exports.getFollowingFeed = async (req, res) => {
                 r.image_url,
                 r.created_at,
                 r.updated_at,
+                u.id AS author_id,
                 u.username AS author,
                 COALESCE(AVG(rt.rating), 0) AS average_rating
             FROM recipes r
