@@ -4,40 +4,214 @@
 <head>
     <title>Community</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="shopping-list.css">
+
+    
 </head>
 
 <body>
 
     <nav>
-        <a href="dashboard.html">Home</a>
-        <a href="recipes.html">My Recipes</a>
-        <a href="favorites.html">Favorites</a>
-        <a href="community.html">Community</a>
-        <a href="aboutus.html">About Us</a>
-        <button onclick="logout()">Logout</button>
+        <div>
+            <a href="dashboard.html">Home</a>
+            <a href="recipes.html">My Recipes</a>
+            <a href="favorites.html">Favorites</a>
+            <a href="community.html">Community</a>
+            <a href="calendar.html">Calendar</a>
+            <a href="aboutus.html">About Us</a>
+        </div>
 
         <div id="profile-menu">
-            <img id="profile-avatar" src="default.png" />
-            <div id="dropdown">
-             <a href="profile.html">Edit Profile</a>
-             <a id="logout-btn">Logout</a>
-             <a id="delete-btn" class="danger">Delete Account</a>
-            </div>
+            <button id="profile-btn" onclick="window.location.href='profile.html'">
+                Account Settings
+            </button>
         </div>
     </nav>
 
     <div class="container">
         <h1>Community Feed</h1>
-        <div class="card">
-            <h3>User Post Example</h3>
-            <button>Follow</button>
+
+        <!-- Tabs -->
+        <div class="tab-bar">
+            <button id="tabAll" class="active" onclick="switchTab('all')">All Recipes</button>
+            <button id="tabFollowing" onclick="switchTab('following')">Following</button>
+        </div>
+
+        <!-- ALL -->
+        <div id="tabAllContent">
+            <input type="text" id="recipe-search" placeholder="Search..." onkeyup="filterFeed()">
+            <div id="feed"></div>
+        </div>
+
+        <!-- FOLLOWING -->
+        <div id="tabFollowingContent" style="display:none;">
+            <input type="text" id="following-search" placeholder="Search..." onkeyup="filterFollowingFeed()">
+            <div id="followingFeed"></div>
         </div>
     </div>
 
-
-    <script src="auth.js"></script>
     <script>
-        document.addEventListener("DOMContentLoaded", requireAuth);
+        const API_BASE_URL = "http://localhost:3000";
+
+        // 🔐 Auth check
+        if (!localStorage.getItem("token")) {
+            window.location.href = "index.html";
+        }
+
+        // ───────────────────────── Tabs
+        function switchTab(tab) {
+            const isAll = tab === "all";
+
+            document.getElementById("tabAllContent").style.display = isAll ? "" : "none";
+            document.getElementById("tabFollowingContent").style.display = isAll ? "none" : "";
+
+            document.getElementById("tabAll").classList.toggle("active", isAll);
+            document.getElementById("tabFollowing").classList.toggle("active", !isAll);
+
+            if (!isAll) loadFollowingFeed();
+        }
+
+        // ───────────────────────── Search
+        function filterFeed() {
+            const input = document.getElementById("recipe-search").value.toLowerCase();
+            document.querySelectorAll("#feed .card").forEach(c => {
+                c.style.display = c.innerText.toLowerCase().includes(input) ? "" : "none";
+            });
+        }
+
+        function filterFollowingFeed() {
+            const input = document.getElementById("following-search").value.toLowerCase();
+            document.querySelectorAll("#followingFeed .card").forEach(c => {
+                c.style.display = c.innerText.toLowerCase().includes(input) ? "" : "none";
+            });
+        }
+
+        // ───────────────────────── Expand Sections
+        function toggleSection(btn) {
+            const sec = btn.nextElementSibling;
+            sec.classList.toggle("hidden");
+        }
+
+        // ───────────────────────── Toggle Favorite
+        function toggleFavorite(recipe, event) {
+            let favorites = JSON.parse(localStorage.getItem('favorites')) || [];
+            const index = favorites.findIndex(f => f.id === recipe.id);
+
+            if (index !== -1) {
+                favorites.splice(index, 1);
+            } else {
+                favorites.push(recipe);
+            }
+
+            localStorage.setItem('favorites', JSON.stringify(favorites));
+
+            // Update the button appearance immediately
+            const favBtn = event.target;
+            const isNowFavorited = favorites.some(f => f.id === recipe.id);
+            favBtn.textContent = isNowFavorited ? '❤️' : '🤍';
+        }
+
+        function getStarDisplay(rating) {
+            const score = Math.round(parseFloat(rating) || 0);
+            let stars = "";
+            for (let i = 1; i <= 5; i++) {
+            // If the current index is less than or equal to the score, use a filled star
+            stars += i <= score ? "★" : "☆";
+        }
+    return stars;
+    }
+
+        // ───────────────────────── Build Card
+        function buildRecipeCard(r) {
+            const card = document.createElement("div");
+            card.className = "card";
+
+            // Check if recipe is favorited
+            const favorites = JSON.parse(localStorage.getItem('favorites')) || [];
+            const isFavorited = favorites.some(f => f.id === r.id);
+
+            card.innerHTML = `
+        <h3>${r.title}</h3>
+        <p>${r.description}</p>
+
+        <p><strong>Author:</strong>
+            <button class="author-btn">${r.author || "Anonymous"}</button>
+        </p>
+
+        <p><strong>Rating:</strong> <span class="stars">${getStarDisplay(r.average_rating)}</span></p>
+        <p><strong>Comments:</strong> ${r.comment_count || 0}</p>
+
+        <img src="${API_BASE_URL + (r.image_url || '/uploads/placeholder.png')}" style="max-width:200px;">
+
+        <button class="recipe-section-btn" onclick="toggleSection(this)">Ingredients</button>
+        <div class="section-content hidden">
+            ${(r.ingredients || []).join("<br>")}
+        </div>
+
+        <button class="recipe-section-btn" onclick="toggleSection(this)">Instructions</button>
+        <div class="section-content hidden">
+            ${r.instructions || ""}
+        </div>
+    `;
+
+            // Add favorite button
+            const favBtn = document.createElement('button');
+            favBtn.className = 'favorite-heart';
+            favBtn.textContent = isFavorited ? '❤️' : '🤍';
+            favBtn.onclick = (event) => toggleFavorite(r, event);
+            card.appendChild(favBtn);
+
+            return card;
+        }
+
+        // ───────────────────────── Load Feed
+        async function loadFeed() {
+            try {
+                const res = await fetch(API_BASE_URL + "/recipes");
+                const data = await res.json();
+
+                const feed = document.getElementById("feed");
+                feed.innerHTML = "";
+
+                data.forEach(r => feed.appendChild(buildRecipeCard(r)));
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        // ───────────────────────── Following Feed
+        async function loadFollowingFeed() {
+            try {
+                const token = localStorage.getItem("token");
+
+                const res = await fetch(API_BASE_URL + "/recipes/following", {
+                    headers: {
+                        "Authorization": `Bearer ${token}`
+                    }
+                });
+
+                const data = await res.json();
+
+                const feed = document.getElementById("followingFeed");
+                feed.innerHTML = "";
+
+                data.forEach(r => feed.appendChild(buildRecipeCard(r)));
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        // ───────────────────────── Live Refresh
+        window.addEventListener("storage", (e) => {
+            if (e.key === "recipes_last_updated") {
+                loadFeed();
+            }
+        });
+
+        // ───────────────────────── Init
+        document.addEventListener("DOMContentLoaded", () => {
+            loadFeed();
+        });
     </script>
 
 </body>
