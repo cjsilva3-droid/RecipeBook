@@ -56,7 +56,7 @@
             <div id="filterPanelAll" class="card filter-panel" style="display:none; margin-bottom: 20px;">
                 <div class="filter-row">
                     <label for="recipe-time-filter">Time:</label>
-                    <select id="recipe-time-filter">
+                    <select id="recipe-time-filter" onchange="filterFeed()">
                         <option value="all">All times</option>
                         <option value="5-15">5-15 minutes</option>
                         <option value="15-45">15-45 minutes</option>
@@ -65,18 +65,13 @@
                 </div>
                 <div class="filter-row">
                     <label for="recipe-sort-order">Sort:</label>
-                    <select id="recipe-sort-order">
+                    <select id="recipe-sort-order" onchange="filterFeed()">
                         <option value="default">Default order</option>
                         <option value="alpha-asc">A-Z</option>
                         <option value="alpha-desc">Z-A</option>
                     </select>
                 </div>
-                <div class="filter-row">
-                    <label class="filter-checkbox">
-                        <input type="checkbox" id="following-only-filter">
-                        By people you follow
-                    </label>
-                </div>
+            
                 <button type="button" id="apply-filter-all-btn" class="search-filter-btn">Apply Filter</button>
             </div>
             <div id="feed" class="community-feed"></div>
@@ -91,7 +86,7 @@
             <div id="filterPanelFollowing" class="card filter-panel" style="display:none; margin-bottom: 20px;">
                 <div class="filter-row">
                     <label for="following-time-filter">Time:</label>
-                    <select id="following-time-filter">
+                    <select id="following-time-filter" onchange="filterFollowingFeed()">
                         <option value="all">All times</option>
                         <option value="5-15">5-15 minutes</option>
                         <option value="15-45">15-45 minutes</option>
@@ -100,7 +95,7 @@
                 </div>
                 <div class="filter-row">
                     <label for="following-sort-order">Sort:</label>
-                    <select id="following-sort-order">
+                    <select id="following-sort-order" onchange="filterFollowingFeed()">
                         <option value="default">Default order</option>
                         <option value="alpha-asc">A-Z</option>
                         <option value="alpha-desc">Z-A</option>
@@ -502,7 +497,6 @@
             const input = document.getElementById("recipe-search").value.toLowerCase();
             const timeFilter = document.getElementById("recipe-time-filter").value;
             const sortOrder = document.getElementById("recipe-sort-order").value;
-            const followingOnly = document.getElementById("following-only-filter").checked;
 
             let filtered = allRecipes.filter(r => {
                 return (r.title || '').toLowerCase().includes(input)
@@ -510,10 +504,6 @@
                     || (r.author || '').toLowerCase().includes(input)
                     || String(r.estimated_time || '').toLowerCase().includes(input);
             });
-
-            if (followingOnly) {
-                filtered = filtered.filter(r => followedAuthorIds.has(Number(r.author_id)));
-            }
 
             filtered = filtered.filter(r => matchesTimeFilter(r, timeFilter));
             renderFeed(sortRecipesByTitle(filtered, sortOrder), 'feed');

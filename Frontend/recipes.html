@@ -48,7 +48,7 @@
         <div id="filterPanel" class="card filter-panel" style="display:none; margin-bottom: 20px;">
             <div class="filter-row">
                 <label for="recipe-time-filter">Time:</label>
-                <select id="recipe-time-filter">
+                <select id="recipe-time-filter" onchange="filterRecipes()">
                     <option value="all">All times</option>
                     <option value="5-15">5-15 minutes</option>
                     <option value="15-45">15-45 minutes</option>
@@ -57,7 +57,7 @@
             </div>
             <div class="filter-row">
                 <label for="recipe-sort-order">Sort:</label>
-                <select id="recipe-sort-order">
+                <select id="recipe-sort-order" onchange="filterRecipes()">
                     <option value="default">Default order</option>
                     <option value="alpha-asc">A-Z</option>
                     <option value="alpha-desc">Z-A</option>
